@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestor de Cotizaciones</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;background:#f5f5f3;color:#1a1a1a;padding:20px}
+  h1{font-size:18px;font-weight:500;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap}
+  .badge-pendiente{background:#FAEEDA;color:#854F0B}
+  .badge-enviada{background:#E6F1FB;color:#185FA5}
+  .badge-negociacion{background:#EEEDFE;color:#3C3489}
+  .badge-expedida{background:#EAF3DE;color:#3B6D11}
+  .badge-perdida{background:#FCEBEB;color:#A32D2D}
+  input,select{width:100%;padding:6px 10px;border:0.5px solid #ccc;border-radius:8px;font-size:13px;background:#fff;color:#1a1a1a}
+  input:focus,select:focus{outline:2px solid #7F77DD;outline-offset:1px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-weight:500;font-size:12px;color:#666;padding:8px 10px;border-bottom:0.5px solid #ddd;background:#f9f9f7}
+  td{padding:8px 10px;border-bottom:0.5px solid #eee;vertical-align:middle}
+  tr:hover td{background:#f9f9f7}
+  .metric{background:#fff;border-radius:8px;padding:14px 16px;flex:1;min-width:120px;border:0.5px solid #eee}
+  .metric-label{font-size:12px;color:#888;margin-bottom:4px}
+  .metric-value{font-size:22px;font-weight:500}
+  .section{background:#fff;border:0.5px solid #eee;border-radius:12px;padding:16px;margin-bottom:16px}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+  label{font-size:12px;color:#666;display:block;margin-bottom:3px}
+  .btn{background:#fff;border:0.5px solid #ccc;border-radius:8px;padding:7px 16px;font-size:13px;cursor:pointer;color:#1a1a1a}
+  .btn:hover{background:#f5f5f3}
+  .btn-success{background:#EAF3DE;color:#3B6D11;border-color:#C0DD97}
+  .btn-export{background:#EEEDFE;color:#3C3489;border-color:#AFA9EC}
+  .action-btn{background:none;border:none;cursor:pointer;color:#888;font-size:14px;padding:2px 5px}
+  .action-btn:hover{color:#1a1a1a}
+  .top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+  .filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .filter-row select,.filter-row input{width:auto;font-size:12px}
+  @media(max-width:600px){.form-row,.form-row-3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1><i class="ti ti-shield"></i> Gestor de cotizaciones</h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-export" onclick="exportarCSV()"><i class="ti ti-download"></i> Exportar CSV</button>
+    <button class="btn" onclick="toggleForm()"><i class="ti ti-plus"></i> Nueva cotización</button>
+  </div>
+</div>
+
+<div id="form-section" style="display:none" class="section">
+  <p style="font-size:13px;font-weight:500;margin-bottom:12px">Registrar cotización</p>
+  <div class="form-row">
+    <div><label>Cliente</label><input type="text" id="f-cliente" placeholder="Nombre completo"></div>
+    <div><label>Teléfono / Email</label><input type="text" id="f-contacto" placeholder="Contacto"></div>
+  </div>
+  <div class="form-row-3">
+    <div><label>Ramo</label>
+      <select id="f-ramo">
+        <option value="">Seleccionar...</option>
+        <option>Autos</option><option>Hogar</option><option>Vida</option>
+        <option>Salud / ARL</option><option>Empresarial / PYME</option><option>Mascotas</option>
+      </select>
+    </div>
+    <div><label>Aseguradora</label>
+      <select id="f-aseguradora">
+        <option value="">Seleccionar...</option>
+        <option>Sura</option><option>Bolívar</option><option>Mapfre</option>
+        <option>AXA</option><option>Allianz</option><option>Otra</option>
+      </select>
+    </div>
+    <div><label>Estado</label>
+      <select id="f-estado">
+        <option>Pendiente de envío</option>
+        <option>Cotización enviada</option>
+        <option>En negociación</option>
+        <option>Expedida / Emitida</option>
+        <option>Perdida / Cancelada</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row-3">
+    <div><label>Prima mensual (COP)</label><input type="number" id="f-prima" placeholder="0"></div>
+    <div><label>Fecha cotización</label><input type="date" id="f-fecha-cot"></div>
+    <div><label>Fecha vencimiento</label><input type="date" id="f-fecha-venc"></div>
+  </div>
+  <div><label>Notas</label><input type="text" id="f-notas" placeholder="Observaciones adicionales..."></div>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <button class="btn btn-success" onclick="guardar()"><i class="ti ti-check"></i> Guardar</button>
+    <button class="btn" onclick="toggleForm()">Cancelar</button>
+  </div>
+</div>
+
+<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap" id="metrics"></div>
+
+<div class="section" style="padding:12px 16px">
+  <div class="filter-row">
+    <i class="ti ti-filter" style="font-size:16px;color:#888"></i>
+    <select id="fil-estado" onchange="renderTabla()">
+      <option value="">Todos los estados</option>
+      <option>Pendiente de envío</option><option>Cotización enviada</option>
+      <option>En negociación</option><option>Expedida / Emitida</option><option>Perdida / Cancelada</option>
+    </select>
+    <select id="fil-ramo" onchange="renderTabla()">
+      <option value="">Todos los ramos</option>
+      <option>Autos</option><option>Hogar</option><option>Vida</option>
+      <option>Salud / ARL</option><option>Empresarial / PYME</option><option>Mascotas</option>
+    </select>
+    <input type="text" id="fil-buscar" placeholder="Buscar cliente..." style="width:160px" oninput="renderTabla()">
+  </div>
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Cliente</th><th>Ramo</th><th>Aseguradora</th><th>Prima/mes</th>
+          <th>Fecha cot.</th><th>Vencimiento</th><th>Estado</th><th>Notas</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="tabla-body"></tbody>
+    </table>
+    <p id="empty-msg" style="text-align:center;color:#888;font-size:13px;padding:24px;display:none">No hay cotizaciones registradas aún.</p>
+  </div>
+</div>
+
+<script>
+const ESTADOS={
+  "Pendiente de envío":"pendiente","Cotización enviada":"enviada",
+  "En negociación":"negociacion","Expedida / Emitida":"expedida","Perdida / Cancelada":"perdida"
+};
+let data=[], editId=null;
+
+function loadData(){
+  try{ const s=localStorage.getItem('cotizaciones_seguros'); if(s) data=JSON.parse(s); }catch(e){}
+  renderAll();
+}
+function saveData(){ localStorage.setItem('cotizaciones_seguros',JSON.stringify(data)); }
+
+function toggleForm(){
+  const f=document.getElementById('form-section');
+  const vis=f.style.display==='none';
+  f.style.display=vis?'block':'none';
+  if(!vis){editId=null;limpiarForm();}
+  if(vis) document.getElementById('f-fecha-cot').value=new Date().toISOString().split('T')[0];
+}
+function limpiarForm(){
+  ['f-cliente','f-contacto','f-prima','f-fecha-cot','f-fecha-venc','f-notas'].forEach(id=>document.getElementById(id).value='');
+  ['f-ramo','f-aseguradora'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-estado').value='Pendiente de envío';
+}
+function guardar(){
+  const cliente=document.getElementById('f-cliente').value.trim();
+  const ramo=document.getElementById('f-ramo').value;
+  if(!cliente||!ramo){alert('Completa al menos cliente y ramo.');return;}
+  const reg={
+    id:editId||Date.now(), cliente,
+    contacto:document.getElementById('f-contacto').value.trim(),
+    ramo, aseguradora:document.getElementById('f-aseguradora').value,
+    prima:parseFloat(document.getElementById('f-prima').value)||0,
+    fechaCot:document.getElementById('f-fecha-cot').value,
+    fechaVenc:document.getElementById('f-fecha-venc').value,
+    estado:document.getElementById('f-estado').value,
+    notas:document.getElementById('f-notas').value.trim()
+  };
+  if(editId){ data=data.map(d=>d.id===editId?reg:d); editId=null; }
+  else data.unshift(reg);
+  saveData(); toggleForm(); renderAll();
+}
+function eliminar(id){
+  if(!confirm('¿Eliminar este registro?'))return;
+  data=data.filter(d=>d.id!==id); saveData(); renderAll();
+}
+function editar(id){
+  const r=data.find(d=>d.id===id); if(!r)return;
+  editId=id;
+  document.getElementById('f-cliente').value=r.cliente;
+  document.getElementById('f-contacto').value=r.contacto||'';
+  document.getElementById('f-ramo').value=r.ramo;
+  document.getElementById('f-aseguradora').value=r.aseguradora||'';
+  document.getElementById('f-prima').value=r.prima||'';
+  document.getElementById('f-fecha-cot').value=r.fechaCot||'';
+  document.getElementById('f-fecha-venc').value=r.fechaVenc||'';
+  document.getElementById('f-estado').value=r.estado;
+  document.getElementById('f-notas').value=r.notas||'';
+  document.getElementById('form-section').style.display='block';
+}
+function fmtFecha(f){ if(!f)return '—'; const [y,m,d]=f.split('-'); return `${d}/${m}/${y}`; }
+function fmtPrima(p){ if(!p)return '—'; return '$'+Math.round(p).toLocaleString('es-CO'); }
+
+function renderMetrics(){
+  const total=data.length;
+  const pendientes=data.filter(d=>['Pendiente de envío','Cotización enviada','En negociación'].includes(d.estado)).length;
+  const expedidas=data.filter(d=>d.estado==='Expedida / Emitida').length;
+  const prima=data.filter(d=>d.estado==='Expedida / Emitida').reduce((a,d)=>a+(d.prima||0),0);
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const en7=new Date(hoy); en7.setDate(hoy.getDate()+7);
+  const prox=data.filter(d=>{
+    if(!d.fechaVenc||['Expedida / Emitida','Perdida / Cancelada'].includes(d.estado))return false;
+    const v=new Date(d.fechaVenc+'T00:00:00'); return v>=hoy&&v<=en7;
+  }).length;
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Total cotizaciones</div><div class="metric-value">${total}</div></div>
+    <div class="metric"><div class="metric-label">En proceso</div><div class="metric-value" style="color:#854F0B">${pendientes}</div></div>
+    <div class="metric"><div class="metric-label">Expedidas</div><div class="metric-value" style="color:#3B6D11">${expedidas}</div></div>
+    <div class="metric"><div class="metric-label">Prima exp./mes</div><div class="metric-value">$${Math.round(prima).toLocaleString('es-CO')}</div></div>
+    ${prox>0?`<div class="metric" style="border-color:#EF9F27"><div class="metric-label" style="color:#854F0B">⚠ Vencen en 7 días</div><div class="metric-value" style="color:#854F0B">${prox}</div></div>`:''}
+  `;
+}
+function renderTabla(){
+  const fE=document.getElementById('fil-estado').value;
+  const fR=document.getElementById('fil-ramo').value;
+  const fB=document.getElementById('fil-buscar').value.toLowerCase();
+  const filtered=data.filter(d=>{
+    if(fE&&d.estado!==fE)return false;
+    if(fR&&d.ramo!==fR)return false;
+    if(fB&&!d.cliente.toLowerCase().includes(fB))return false;
+    return true;
+  });
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const empty=document.getElementById('empty-msg');
+  const tbody=document.getElementById('tabla-body');
+  if(!filtered.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=filtered.map(r=>{
+    const cls=ESTADOS[r.estado]||'pendiente';
+    let va='';
+    if(r.fechaVenc&&!['Expedida / Emitida','Perdida / Cancelada'].includes(r.estado)){
+      const v=new Date(r.fechaVenc+'T00:00:00');
+      const diff=Math.ceil((v-hoy)/(864e5));
+      if(diff<0) va=` <span style="color:#A32D2D;font-size:11px">✗ vencida</span>`;
+      else if(diff<=7) va=` <span style="color:#854F0B;font-size:11px">⚠ ${diff}d</span>`;
+    }
+    return `<tr>
+      <td><strong>${r.cliente}</strong><br><span style="font-size:11px;color:#888">${r.contacto||''}</span></td>
+      <td>${r.ramo}</td><td>${r.aseguradora||'—'}</td>
+      <td>${fmtPrima(r.prima)}</td>
+      <td>${fmtFecha(r.fechaCot)}</td>
+      <td>${fmtFecha(r.fechaVenc)}${va}</td>
+      <td><span class="badge badge-${cls}">${r.estado}</span></td>
+      <td style="font-size:11px;color:#888;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.notas||'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="action-btn" onclick="editar(${r.id})" title="Editar">✏️</button>
+        <button class="action-btn" onclick="eliminar(${r.id})" title="Eliminar">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function renderAll(){ renderMetrics(); renderTabla(); }
+
+function exportarCSV(){
+  const cols=['Cliente','Contacto','Ramo','Aseguradora','Prima mensual','Fecha cotización','Fecha vencimiento','Estado','Notas'];
+  const rows=data.map(r=>[r.cliente,r.contacto,r.ramo,r.aseguradora,r.prima,r.fechaCot,r.fechaVenc,r.estado,r.notas].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(','));
+  const csv='\uFEFF'+[cols.join(','),...rows].join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='cotizaciones.csv'; a.click();
+}
+loadData();
+</script>
+</body>
+</html>
